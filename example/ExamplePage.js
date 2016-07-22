@@ -20,7 +20,6 @@ import RaisedButton from 'material-ui/RaisedButton';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import lightRawTheme from 'material-ui/styles/baseThemes/lightBaseTheme';
 
-
 var ExamplePage = React.createClass({
 
     childContextTypes: {
@@ -34,20 +33,51 @@ var ExamplePage = React.createClass({
     },
 
     getInitialState: function() {
+        var _this = this;
+
+        $.ajax({
+            type: 'GET',
+            url: 'http://localhost:3049/device-list'
+        }).done(function(data) {
+            console.log(data);
+            var deviceList = Object.keys(data);
+            deviceList.forEach(function(deviceID) {
+                $.ajax({
+                    type: 'POST',
+                    url: 'http://localhost:3049/device-control/' + deviceID + '/connect'
+                }).done(function(result) {
+                    console.log('connect result: ' + result);
+                    $.ajax({
+                        type: 'GET',
+                        url: 'http://localhost:3049/device-control/' + deviceID + '/get-spec'
+                    }).done(function(spec) {
+                        console.log(spec.device.friendlyName);
+                        var di = _this.state.deviceInfo;
+                        di[deviceID] = spec;
+                        // this.state.deviceInfo[deviceID] = spec;
+                        _this.setState({ deviceInfo: di });
+                        console.log(_this.state);
+                        var tests = _this.state.tests;
+                        tests.push({label: spec.device.friendlyName, value: deviceID});
+                        _this.setState(tests);
+                    });
+                });
+            });
+        });
         return {
             tests: [
-                { label: "Simple", value: 'data/simple.json' },
-                { label: "Simple Array", value: 'data/simplearray.json'},
-                { label: "Basic JSON Schema Type", value: 'data/types.json' },
-                { label: 'Basic Radios', value: 'data/radio.json'},
-                { label: 'Condition', value: 'data/condition.json'},
-                { label: "Kitchen Sink", value: 'data/kitchenSink.json'},
-                { label: "Login", value: 'data/login.json'},
-                { label: "Date", value: 'data/date.json'},
-                { label: "Readonly", value: 'data/readonly.json'},
-                { label: "Array", value: 'data/array.json'},
-                { label: "Object", value: 'data/object.json'},
-                { label: "ArraySelect", value: 'data/arrayselect.json'}
+                // { label: "Simple", value: 'data/simple.json' },
+                // { label: "Simple Array", value: 'data/simplearray.json'},
+                // { label: "Basic JSON Schema Type", value: 'data/types.json' },
+                // { label: 'Basic Radios', value: 'data/radio.json'},
+                // { label: 'Condition', value: 'data/condition.json'},
+                // { label: "Kitchen Sink", value: 'data/kitchenSink.json'},
+                // { label: "Login", value: 'data/login.json'},
+                // { label: "Date", value: 'data/date.json'},
+                // { label: "Readonly", value: 'data/readonly.json'},
+                // { label: "Array", value: 'data/array.json'},
+                // { label: "Object", value: 'data/object.json'},
+                // { label: "ArraySelect", value: 'data/arrayselect.json'}
             ],
             validationResult: {},
             schema: {},
@@ -56,40 +86,63 @@ var ExamplePage = React.createClass({
             schemaJson: '',
             formJson: '',
             selected: '',
-            muiTheme: getMuiTheme(lightRawTheme)
+            muiTheme: getMuiTheme(lightRawTheme),
+            deviceInfo: {},
+            apis: []
         };
     },
 
     onSelectChange: function(val) {
-        //console.log("Selected:" + val);
-        if(!val) {
-            this.setState({
-                schemaJson: '',
-                formJson: '',
-                selected : '',
-                schema: {},
-                model: {},
-                form: []
-            });
-            return;
-        }
+        console.log("Selected:" + JSON.stringify(val.value));
 
-        $.ajax({
-            type: 'GET',
-            url: val.value
-        }).done(function(data) {
-            //console.log('done', data);
-            //console.log('data.schema = ', data.schema);
-            //console.log('data.form = ', data.form);
-            this.setState({
-                schemaJson: JSON.stringify(data.schema, undefined, 2),
-                formJson: JSON.stringify(data.form, undefined, 2),
-                selected : val.value,
-                schema: data.schema,
-                model: {},
-                form: data.form
+        var _this = this;
+        var deviceInfo = this.state.deviceInfo;
+        var deviceID = val.value;
+        var spec = deviceInfo[deviceID];
+        var serviceList = spec.device.serviceList;
+        var sl = Object.keys(serviceList);
+        var deviceAPIs = [];
+        sl.forEach(function(serviceID) {
+            var service = serviceList[serviceID];
+            var al = Object.keys(service.actionList);
+            al.forEach(function(actionName) {
+                deviceAPIs.push(
+                    <div>
+                        <RaisedButton primary={true} label={actionName} onTouchTap={_this.onShowAPI.bind(null, deviceID, serviceID, actionName)}/>
+                    </div>
+                );
             });
-        }.bind(this));
+        });
+        this.setState({apis: deviceAPIs});
+
+        // if(!val) {
+        // this.setState({
+        //     schemaJson: '',
+        //     formJson: '',
+        //     selected : '',
+        //     schema: {},
+        //     model: {},
+        //     form: []
+        // });
+        return;
+        // }
+
+        // $.ajax({
+        //     type: 'GET',
+        //     url: val.value
+        // }).done(function(data) {
+        //     //console.log('done', data);
+        //     //console.log('data.schema = ', data.schema);
+        //     //console.log('data.form = ', data.form);
+        //     this.setState({
+        //         schemaJson: JSON.stringify(data.schema, undefined, 2),
+        //         formJson: JSON.stringify(data.form, undefined, 2),
+        //         selected : val.value,
+        //         schema: data.schema,
+        //         model: {},
+        //         form: data.form
+        //     });
+        // }.bind(this));
     },
 
     onModelChange: function(key, val) {
@@ -103,6 +156,32 @@ var ExamplePage = React.createClass({
         console.log('ExamplePage.onValidate is called');
         let result = utils.validateBySchema(this.state.schema, this.state.model);
         this.setState({ validationResult: result });
+    },
+
+    onShowAPI: function(deviceID, serviceID, actionName) {
+        var _this = this;
+        var spec = this.state.deviceInfo[deviceID];
+        var argumentList  = spec.device.serviceList[serviceID].actionList[actionName].argumentList;
+        var stateVarTable = spec.device.serviceList[serviceID].serviceStateTable;
+        for (var name in argumentList) {
+            var arg = argumentList[name];
+            if (arg.direction === 'in') {
+                var stateVarName = arg.relatedStateVariable;
+                var stateVar = stateVarTable[stateVarName];
+                if (stateVar.dataType === 'object') {
+                    var schema = stateVar.schema;
+                    $.ajax({
+                        type: 'GET',
+                        url: 'http://localhost:3049/device-control/' + deviceID + '/schema/' + schema
+                    }).done(function(schemaObject) {
+                        console.log(schemaObject);
+                        _this.setState({schemaJson: JSON.stringify(schemaObject), schema: schemaObject});
+                        var f = ["*"];
+                        _this.setState({formJson: JSON.stringify(f), form: f});
+                    });
+                }
+            }
+        }
     },
 
     onFormChange: function(val) {
@@ -126,6 +205,7 @@ var ExamplePage = React.createClass({
 
         var schemaForm = '';
         var validate = '';
+        var invokeAction = '';
         if (this.state.form.length > 0) {
             schemaForm = (
                 <SchemaForm schema={this.state.schema} form={this.state.form} model={this.state.model} onModelChange={this.onModelChange} mapper={mapper} />
@@ -136,6 +216,14 @@ var ExamplePage = React.createClass({
                     <pre>{JSON.stringify(this.state.validationResult,undefined,2,2)}</pre>
                 </div>
             );
+
+            invokeAction = (
+                <div>
+                    <RaisedButton primary={true} label="invokeAction" onTouchTap={this.onInvokeAction} />
+                    <SchemaForm schema={this.state.outputSchema} form={this.state.outputForm} model={this.state.outputModel} onModelChange={this.onModelChange} mapper={mapper} />
+                </div>
+            );
+
         }
 
         return (
@@ -160,6 +248,8 @@ var ExamplePage = React.createClass({
                             </Select>
                         </div>
                         <h3>Form</h3>
+                        <h3>Device APIs</h3>
+                        <h3>{this.state.apis}</h3>
                         <AceEditor mode="json" theme="github" height="300px" width="800px" onChange={this.onFormChange} name="aceForm" value={this.state.formJson} editorProps={{$blockScrolling: true}}/>
                         <h3>Schema</h3>
                         <AceEditor mode="json" theme="github" height="300px" width="800px" onChange={this.onSchemaChange} name="aceSchema" value={this.state.schemaJson} editorProps={{$blockScrolling: true}}/>
