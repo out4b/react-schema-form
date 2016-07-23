@@ -88,7 +88,10 @@ var ExamplePage = React.createClass({
             selected: '',
             muiTheme: getMuiTheme(lightRawTheme),
             deviceInfo: {},
-            apis: []
+            apis: [],
+            outputSchema: {type: "object"},
+            outputForm: ["*"],
+            outputModel: {}
         };
     },
 
@@ -113,17 +116,8 @@ var ExamplePage = React.createClass({
                 );
             });
         });
-        this.setState({apis: deviceAPIs});
+        this.setState({apis: deviceAPIs, selected: val.value});
 
-        // if(!val) {
-        // this.setState({
-        //     schemaJson: '',
-        //     formJson: '',
-        //     selected : '',
-        //     schema: {},
-        //     model: {},
-        //     form: []
-        // });
         return;
         // }
 
@@ -152,6 +146,10 @@ var ExamplePage = React.createClass({
         this.setState({ model: newModel });
     },
 
+    onOutputModelChange: function(key, val) {
+        console.log('ExamplePage.onOutputModelChange:', key, val);
+    },
+
     onValidate: function() {
         console.log('ExamplePage.onValidate is called');
         let result = utils.validateBySchema(this.state.schema, this.state.model);
@@ -163,6 +161,7 @@ var ExamplePage = React.createClass({
         var spec = this.state.deviceInfo[deviceID];
         var argumentList  = spec.device.serviceList[serviceID].actionList[actionName].argumentList;
         var stateVarTable = spec.device.serviceList[serviceID].serviceStateTable;
+        this.setState({argumentList: argumentList});
         for (var name in argumentList) {
             var arg = argumentList[name];
             if (arg.direction === 'in') {
@@ -182,6 +181,7 @@ var ExamplePage = React.createClass({
                 }
             }
         }
+        this.setState({deviceID: deviceID, serviceID: serviceID, actionName: actionName});
     },
 
     onFormChange: function(val) {
@@ -196,6 +196,39 @@ var ExamplePage = React.createClass({
             let s = JSON.parse(val);
             this.setState({schemaJson: val, schema: s});
         } catch (e) {}
+    },
+
+    onInvokeAction: function() {
+        console.log(this.state.deviceID);
+        console.log(this.state.serviceID);
+        console.log(this.state.actionName);
+        console.log(this.state.model);
+        var deviceID   = this.state.deviceID;
+        var serviceID  = this.state.serviceID;
+        var actionName = this.state.actionName;
+        var model = this.state.model;
+
+        var argumentList = this.state.argumentList;
+        // for simplicity only support one argument for now
+        var argKey = Object.keys(argumentList);
+        var name = argKey[0];
+        console.log(name);
+        var inputData = {};
+        inputData[name] = model;
+
+        $.ajax({
+            type: 'POST',
+            url: 'http://localhost:3049/device-control/' + this.state.deviceID + '/invoke-action',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                serviceID: serviceID,
+                actionName: actionName,
+                argumentList: inputData
+            }),
+            dataType: 'json'
+        }).done(function(outputData) {
+            console.log(outputData);
+        });
     },
 
     render: function() {
@@ -220,7 +253,7 @@ var ExamplePage = React.createClass({
             invokeAction = (
                 <div>
                     <RaisedButton primary={true} label="invokeAction" onTouchTap={this.onInvokeAction} />
-                    <SchemaForm schema={this.state.outputSchema} form={this.state.outputForm} model={this.state.outputModel} onModelChange={this.onModelChange} mapper={mapper} />
+                    <SchemaForm schema={this.state.outputSchema} form={this.state.outputForm} model={this.state.outputModel} onModelChange={this.onOutputModelChange} mapper={mapper} />
                 </div>
             );
 
@@ -236,6 +269,7 @@ var ExamplePage = React.createClass({
                         <h3>Model</h3>
                         <pre>{JSON.stringify(this.state.model,undefined,2,2)}</pre>
                         {validate}
+                        {invokeAction}
                     </div>
                     <div className="col-sm-8">
                         <h3>Select Example</h3>
