@@ -90,7 +90,7 @@ var ExamplePage = React.createClass({
             deviceInfo: {},
             apis: [],
             outputSchema: {type: "object"},
-            outputForm: ["*"],
+            outputForm: [],
             outputModel: {}
         };
     },
@@ -162,6 +162,7 @@ var ExamplePage = React.createClass({
         var argumentList  = spec.device.serviceList[serviceID].actionList[actionName].argumentList;
         var stateVarTable = spec.device.serviceList[serviceID].serviceStateTable;
         this.setState({argumentList: argumentList});
+        // for demo simplicity only support one argument for now
         for (var name in argumentList) {
             var arg = argumentList[name];
             if (arg.direction === 'in') {
@@ -177,6 +178,19 @@ var ExamplePage = React.createClass({
                         _this.setState({schemaJson: JSON.stringify(schemaObject), schema: schemaObject});
                         var f = ["*"];
                         _this.setState({formJson: JSON.stringify(f), form: f});
+                    });
+                }
+            } else {
+                var stateVarName = arg.relatedStateVariable;
+                var stateVar = stateVarTable[stateVarName];
+                if (stateVar.dataType === 'object') {
+                    var schema = stateVar.schema;
+                    $.ajax({
+                        type: 'GET',
+                        url: 'http://localhost:3049/device-control/' + deviceID + '/schema/' + schema
+                    }).done(function(schemaObject) {
+                        console.log(schemaObject);
+                        _this.setState({outputSchema: schemaObject});
                     });
                 }
             }
@@ -203,13 +217,16 @@ var ExamplePage = React.createClass({
         console.log(this.state.serviceID);
         console.log(this.state.actionName);
         console.log(this.state.model);
+
+        var _this = this;
+
         var deviceID   = this.state.deviceID;
         var serviceID  = this.state.serviceID;
         var actionName = this.state.actionName;
         var model = this.state.model;
 
         var argumentList = this.state.argumentList;
-        // for simplicity only support one argument for now
+        // for demo simplicity only support one argument for now
         var argKey = Object.keys(argumentList);
         var name = argKey[0];
         console.log(name);
@@ -225,9 +242,15 @@ var ExamplePage = React.createClass({
                 actionName: actionName,
                 argumentList: inputData
             }),
-            dataType: 'json'
+            dataType: 'json',
+            error: function(xhr, status, err) {
+                console.log(xhr);
+                _this.setState({outputModel: JSON.parse(xhr.responseText).message});
+            }
         }).done(function(outputData) {
             console.log(outputData);
+            var f = ["*"];
+            _this.setState({ outputForm: f, outputModel: outputData });
         });
     },
 
@@ -237,6 +260,7 @@ var ExamplePage = React.createClass({
         };
 
         var schemaForm = '';
+        var outputSchemaForm = '';
         var validate = '';
         var invokeAction = '';
         if (this.state.form.length > 0) {
@@ -252,26 +276,31 @@ var ExamplePage = React.createClass({
 
             invokeAction = (
                 <div>
-                    <RaisedButton primary={true} label="invokeAction" onTouchTap={this.onInvokeAction} />
-                    <SchemaForm schema={this.state.outputSchema} form={this.state.outputForm} model={this.state.outputModel} onModelChange={this.onOutputModelChange} mapper={mapper} />
+                    <RaisedButton primary={true} label="执行" onTouchTap={this.onInvokeAction} />
                 </div>
             );
-
         }
+
+        // if (this.state.outputForm.length > 0) {
+        //     outputSchemaForm = (
+        //         <SchemaForm schema={this.state.outputSchema} form={this.state.outputForm} model={this.state.outputModel} onModelChange={this.onOutputModelChange} />
+        //     );
+        // }
 
         return (
             <div className="col-md-12">
-                <h1>Schema Form Example</h1>
+                <h1>API接口自动表单生成演示</h1>
                 <div className="row">
-                    <div className="col-sm-4">
-                        <h3 style={{display:'inline-block'}}>The Generated Form</h3>
-                        {schemaForm}
-                        <h3>Model</h3>
-                        <pre>{JSON.stringify(this.state.model,undefined,2,2)}</pre>
-                        {validate}
-                        {invokeAction}
-                    </div>
                     <div className="col-sm-8">
+                        <h3 style={{display:'inline-block'}}>输入表单</h3>
+                        {schemaForm}
+                        {invokeAction}
+                        <h3>输入数据</h3>
+                        <pre>{JSON.stringify(this.state.model,undefined,2,2)}</pre>
+                        <h3>返回结果</h3>
+                        <pre>{JSON.stringify(this.state.outputModel,undefined,2,2)}</pre>
+                    </div>
+                    <div className="col-sm-4">
                         <h3>Select Example</h3>
                         <div className="form-group">
                             <Select
@@ -281,8 +310,7 @@ var ExamplePage = React.createClass({
                                 onChange={this.onSelectChange}>
                             </Select>
                         </div>
-                        <h3>Form</h3>
-                        <h3>Device APIs</h3>
+                        <h3>API接口列表</h3>
                         <h3>{this.state.apis}</h3>
                         <AceEditor mode="json" theme="github" height="300px" width="800px" onChange={this.onFormChange} name="aceForm" value={this.state.formJson} editorProps={{$blockScrolling: true}}/>
                         <h3>Schema</h3>
