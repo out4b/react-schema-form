@@ -16,6 +16,7 @@ require('brace/theme/github');
 require('rc-select/assets/index.css');
 import RcSelect from 'react-schema-form-rc-select/lib/RcSelect';
 import RaisedButton from 'material-ui/RaisedButton';
+import TextField from 'material-ui/TextField';
 
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import lightRawTheme from 'material-ui/styles/baseThemes/lightBaseTheme';
@@ -33,37 +34,6 @@ var ExamplePage = React.createClass({
     },
 
     getInitialState: function() {
-        var _this = this;
-
-        $.ajax({
-            type: 'GET',
-            url: 'http://localhost:3049/device-list'
-        }).done(function(data) {
-            console.log(data);
-            var deviceList = Object.keys(data);
-            deviceList.forEach(function(deviceID) {
-                $.ajax({
-                    type: 'POST',
-                    url: 'http://localhost:3049/device-control/' + deviceID + '/connect'
-                }).done(function(result) {
-                    console.log('connect result: ' + result);
-                    $.ajax({
-                        type: 'GET',
-                        url: 'http://localhost:3049/device-control/' + deviceID + '/get-spec'
-                    }).done(function(spec) {
-                        console.log(spec.device.friendlyName);
-                        var di = _this.state.deviceInfo;
-                        di[deviceID] = spec;
-                        // this.state.deviceInfo[deviceID] = spec;
-                        _this.setState({ deviceInfo: di });
-                        console.log(_this.state);
-                        var tests = _this.state.tests;
-                        tests.push({label: spec.device.friendlyName, value: deviceID});
-                        _this.setState(tests);
-                    });
-                });
-            });
-        });
         return {
             tests: [
                 // { label: "Simple", value: 'data/simple.json' },
@@ -91,7 +61,8 @@ var ExamplePage = React.createClass({
             apis: [],
             outputSchema: {type: "object"},
             outputForm: [],
-            outputModel: {}
+            outputModel: {},
+            serverAddr: 'http://localhost:3049'
         };
     },
 
@@ -172,7 +143,7 @@ var ExamplePage = React.createClass({
                     var schema = stateVar.schema;
                     $.ajax({
                         type: 'GET',
-                        url: 'http://localhost:3049/device-control/' + deviceID + '/schema/' + schema
+                        url: _this.state.serverAddr + '/device-control/' + deviceID + '/schema/' + schema
                     }).done(function(schemaObject) {
                         console.log(schemaObject);
                         _this.setState({schemaJson: JSON.stringify(schemaObject), schema: schemaObject});
@@ -187,7 +158,7 @@ var ExamplePage = React.createClass({
                     var schema = stateVar.schema;
                     $.ajax({
                         type: 'GET',
-                        url: 'http://localhost:3049/device-control/' + deviceID + '/schema/' + schema
+                        url: _this.state.serverAddr + '/device-control/' + deviceID + '/schema/' + schema
                     }).done(function(schemaObject) {
                         console.log(schemaObject);
                         _this.setState({outputSchema: schemaObject});
@@ -212,12 +183,48 @@ var ExamplePage = React.createClass({
         } catch (e) {}
     },
 
-    onInvokeAction: function() {
-        console.log(this.state.deviceID);
-        console.log(this.state.serviceID);
-        console.log(this.state.actionName);
-        console.log(this.state.model);
+    onServerAddrChange: function(key, val) {
+        console.log(val);
+        this.setState({ serverAddr: val });
+    },
 
+    onConnectServer: function() {
+        var _this = this;
+
+        $.ajax({
+            type: 'GET',
+            url: _this.state.serverAddr + '/device-list',
+            error: function(xhr, status, err) {
+                console.log(xhr);
+            }
+        }).done(function(data) {
+            console.log(data);
+            var deviceList = Object.keys(data);
+            deviceList.forEach(function(deviceID) {
+                $.ajax({
+                    type: 'POST',
+                    url: _this.state.serverAddr + '/device-control/' + deviceID + '/connect'
+                }).done(function(result) {
+                    console.log('connect result: ' + result);
+                    $.ajax({
+                        type: 'GET',
+                        url: _this.state.serverAddr + '/device-control/' + deviceID + '/get-spec'
+                    }).done(function(spec) {
+                        console.log(spec.device.friendlyName);
+                        var di = _this.state.deviceInfo;
+                        di[deviceID] = spec;
+                        _this.setState({ deviceInfo: di });
+                        console.log(_this.state);
+                        var tests = _this.state.tests;
+                        tests.push({label: spec.device.friendlyName, value: deviceID});
+                        _this.setState(tests);
+                    });
+                });
+            });
+        });
+    },
+
+    onInvokeAction: function() {
         var _this = this;
 
         var deviceID   = this.state.deviceID;
@@ -235,7 +242,7 @@ var ExamplePage = React.createClass({
 
         $.ajax({
             type: 'POST',
-            url: 'http://localhost:3049/device-control/' + this.state.deviceID + '/invoke-action',
+            url: _this.state.serverAddr + '/device-control/' + this.state.deviceID + '/invoke-action',
             contentType: 'application/json',
             data: JSON.stringify({
                 serviceID: serviceID,
@@ -301,6 +308,11 @@ var ExamplePage = React.createClass({
                         <pre>{JSON.stringify(this.state.outputModel,undefined,2,2)}</pre>
                     </div>
                     <div className="col-sm-4">
+                        <h3>服务器地址</h3>
+                        <div className="row">
+                            <TextField hintText="http://localhost:3049" id="text-field-controlled" value={this.state.serverAddr} onChange={this.onServerAddrChange} />
+                            <RaisedButton primary={true} label="连接" onTouchTap={this.onConnectServer} />
+                        </div>
                         <h3>Select Example</h3>
                         <div className="form-group">
                             <Select
