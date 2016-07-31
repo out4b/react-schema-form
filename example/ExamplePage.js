@@ -67,9 +67,8 @@ var ExamplePage = React.createClass({
     },
 
     onSelectChange: function(val) {
-        console.log("Selected:" + JSON.stringify(val.value));
-
         var _this = this;
+
         var deviceInfo = this.state.deviceInfo;
         var deviceID = val.value;
         var spec = deviceInfo[deviceID];
@@ -87,7 +86,7 @@ var ExamplePage = React.createClass({
                 );
             });
         });
-        this.setState({apis: deviceAPIs, selected: val.value});
+        this.setState({apis: deviceAPIs, model: {}, selected: val.value});
 
         return;
         // }
@@ -111,7 +110,6 @@ var ExamplePage = React.createClass({
     },
 
     onModelChange: function(key, val) {
-        console.log('ExamplePage.onModelChange:', key, val);
         var newModel = this.state.model;
         utils.selectOrSet(key, newModel, val);
         this.setState({ model: newModel });
@@ -122,7 +120,6 @@ var ExamplePage = React.createClass({
     },
 
     onValidate: function() {
-        console.log('ExamplePage.onValidate is called');
         let result = utils.validateBySchema(this.state.schema, this.state.model);
         this.setState({ validationResult: result });
     },
@@ -160,7 +157,6 @@ var ExamplePage = React.createClass({
                         type: 'GET',
                         url: _this.state.serverAddr + '/device-control/' + deviceID + '/schema/' + schema
                     }).done(function(schemaObject) {
-                        console.log(schemaObject);
                         _this.setState({outputSchema: schemaObject});
                     });
                 }
@@ -184,7 +180,6 @@ var ExamplePage = React.createClass({
     },
 
     onServerAddrChange: function(key, val) {
-        console.log(val);
         this.setState({ serverAddr: val });
     },
 
@@ -198,14 +193,12 @@ var ExamplePage = React.createClass({
                 console.log(xhr);
             }
         }).done(function(data) {
-            console.log(data);
             var deviceList = Object.keys(data);
             deviceList.forEach(function(deviceID) {
                 $.ajax({
                     type: 'POST',
                     url: _this.state.serverAddr + '/device-control/' + deviceID + '/connect'
                 }).done(function(result) {
-                    console.log('connect result: ' + result);
                     $.ajax({
                         type: 'GET',
                         url: _this.state.serverAddr + '/device-control/' + deviceID + '/get-spec'
@@ -214,10 +207,17 @@ var ExamplePage = React.createClass({
                         var di = _this.state.deviceInfo;
                         di[deviceID] = spec;
                         _this.setState({ deviceInfo: di });
-                        console.log(_this.state);
                         var tests = _this.state.tests;
-                        tests.push({label: spec.device.friendlyName, value: deviceID});
-                        _this.setState(tests);
+                        var name = spec.device.friendlyName;
+
+                        var hasElement = false;
+                        tests.forEach(function(item) {
+                            if (item.label === name) hasElement = true;
+                        });
+                        if (hasElement === false) {
+                            tests.push({label: spec.device.friendlyName, value: deviceID});
+                            _this.setState(tests);
+                        }
                     });
                 });
             });
@@ -255,7 +255,6 @@ var ExamplePage = React.createClass({
                 _this.setState({outputModel: JSON.parse(xhr.responseText).message});
             }
         }).done(function(outputData) {
-            console.log(outputData);
             var f = ["*"];
             _this.setState({ outputForm: f, outputModel: outputData });
         });
