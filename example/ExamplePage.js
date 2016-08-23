@@ -35,20 +35,7 @@ var ExamplePage = React.createClass({
 
     getInitialState: function() {
         return {
-            tests: [
-                // { label: "Simple", value: 'data/simple.json' },
-                // { label: "Simple Array", value: 'data/simplearray.json'},
-                // { label: "Basic JSON Schema Type", value: 'data/types.json' },
-                // { label: 'Basic Radios', value: 'data/radio.json'},
-                // { label: 'Condition', value: 'data/condition.json'},
-                // { label: "Kitchen Sink", value: 'data/kitchenSink.json'},
-                // { label: "Login", value: 'data/login.json'},
-                // { label: "Date", value: 'data/date.json'},
-                // { label: "Readonly", value: 'data/readonly.json'},
-                // { label: "Array", value: 'data/array.json'},
-                // { label: "Object", value: 'data/object.json'},
-                // { label: "ArraySelect", value: 'data/arrayselect.json'}
-            ],
+            tests: [],
             validationResult: {},
             schema: {},
             form: [],
@@ -89,24 +76,6 @@ var ExamplePage = React.createClass({
         this.setState({apis: deviceAPIs, model: {}, selected: val.value});
 
         return;
-        // }
-
-        // $.ajax({
-        //     type: 'GET',
-        //     url: val.value
-        // }).done(function(data) {
-        //     //console.log('done', data);
-        //     //console.log('data.schema = ', data.schema);
-        //     //console.log('data.form = ', data.form);
-        //     this.setState({
-        //         schemaJson: JSON.stringify(data.schema, undefined, 2),
-        //         formJson: JSON.stringify(data.form, undefined, 2),
-        //         selected : val.value,
-        //         schema: data.schema,
-        //         model: {},
-        //         form: data.form
-        //     });
-        // }.bind(this));
     },
 
     onModelChange: function(key, val) {
@@ -204,9 +173,9 @@ var ExamplePage = React.createClass({
                         url: _this.state.serverAddr + '/device-control/' + deviceID + '/get-spec'
                     }).done(function(spec) {
                         console.log(spec.device.friendlyName);
-                        var di = _this.state.deviceInfo;
-                        di[deviceID] = spec;
-                        _this.setState({ deviceInfo: di });
+                        var deviceInfo = _this.state.deviceInfo;
+                        deviceInfo[deviceID] = spec;
+                        _this.setState({ deviceInfo: deviceInfo });
                         var tests = _this.state.tests;
                         var name = spec.device.friendlyName;
 
@@ -286,12 +255,6 @@ var ExamplePage = React.createClass({
                 </div>
             );
         }
-
-        // if (this.state.outputForm.length > 0) {
-        //     outputSchemaForm = (
-        //         <SchemaForm schema={this.state.outputSchema} form={this.state.outputForm} model={this.state.outputModel} onModelChange={this.onOutputModelChange} />
-        //     );
-        // }
 
         return (
             <div className="col-md-12">
