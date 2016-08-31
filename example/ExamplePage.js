@@ -221,7 +221,7 @@ var ExamplePage = React.createClass({
             dataType: 'json',
             error: function(xhr, status, err) {
                 console.log(xhr);
-                _this.setState({outputModel: JSON.parse(xhr.responseText).message});
+                _this.setState({outputModel: JSON.parse(xhr.responseText)});
             }
         }).done(function(outputData) {
             var f = ["*"];
