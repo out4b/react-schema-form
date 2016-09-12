@@ -164,30 +164,26 @@ var ExamplePage = React.createClass({
         }).done(function(data) {
             var deviceList = Object.keys(data);
             deviceList.forEach(function(deviceID) {
+                // we assume userAuth is not set in this demo
                 $.ajax({
-                    type: 'POST',
-                    url: _this.state.serverAddr + '/device-control/' + deviceID + '/connect'
-                }).done(function(result) {
-                    $.ajax({
-                        type: 'GET',
-                        url: _this.state.serverAddr + '/device-control/' + deviceID + '/get-spec'
-                    }).done(function(spec) {
-                        console.log(spec.device.friendlyName);
-                        var deviceInfo = _this.state.deviceInfo;
-                        deviceInfo[deviceID] = spec;
-                        _this.setState({ deviceInfo: deviceInfo });
-                        var tests = _this.state.tests;
-                        var name = spec.device.friendlyName;
+                    type: 'GET',
+                    url: _this.state.serverAddr + '/device-control/' + deviceID + '/get-spec'
+                }).done(function(spec) {
+                    console.log(spec.device.friendlyName);
+                    var deviceInfo = _this.state.deviceInfo;
+                    deviceInfo[deviceID] = spec;
+                    _this.setState({ deviceInfo: deviceInfo });
+                    var tests = _this.state.tests;
+                    var name = spec.device.friendlyName;
+                    var hasElement = false;
 
-                        var hasElement = false;
-                        tests.forEach(function(item) {
-                            if (item.label === name) hasElement = true;
-                        });
-                        if (hasElement === false) {
-                            tests.push({label: spec.device.friendlyName, value: deviceID});
-                            _this.setState(tests);
-                        }
+                    tests.forEach(function(item) {
+                        if (item.label === name) hasElement = true;
                     });
+                    if (hasElement === false) {
+                        tests.push({label: spec.device.friendlyName, value: deviceID});
+                        _this.setState(tests);
+                    }
                 });
             });
         });
