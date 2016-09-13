@@ -109,7 +109,7 @@ var ExamplePage = React.createClass({
                     var schema = stateVar.schema;
                     $.ajax({
                         type: 'GET',
-                        url: _this.state.serverAddr + '/device-control/' + deviceID + '/schema/' + schema
+                        url: _this.state.serverAddr + '/devices/' + deviceID + '/schema/' + schema
                     }).done(function(schemaObject) {
                         console.log(schemaObject);
                         _this.setState({schemaJson: JSON.stringify(schemaObject), schema: schemaObject});
@@ -124,7 +124,7 @@ var ExamplePage = React.createClass({
                     var schema = stateVar.schema;
                     $.ajax({
                         type: 'GET',
-                        url: _this.state.serverAddr + '/device-control/' + deviceID + '/schema/' + schema
+                        url: _this.state.serverAddr + '/devices/' + deviceID + '/schema/' + schema
                     }).done(function(schemaObject) {
                         _this.setState({outputSchema: schemaObject});
                     });
@@ -167,7 +167,7 @@ var ExamplePage = React.createClass({
                 // we assume userAuth is not set in this demo
                 $.ajax({
                     type: 'GET',
-                    url: _this.state.serverAddr + '/device-control/' + deviceID + '/get-spec'
+                    url: _this.state.serverAddr + '/devices/' + deviceID + '/get-spec'
                 }).done(function(spec) {
                     console.log(spec.device.friendlyName);
                     var deviceInfo = _this.state.deviceInfo;
@@ -207,7 +207,7 @@ var ExamplePage = React.createClass({
 
         $.ajax({
             type: 'POST',
-            url: _this.state.serverAddr + '/device-control/' + this.state.deviceID + '/invoke-action',
+            url: _this.state.serverAddr + '/devices/' + this.state.deviceID + '/invoke-action',
             contentType: 'application/json',
             data: JSON.stringify({
                 serviceID: serviceID,
